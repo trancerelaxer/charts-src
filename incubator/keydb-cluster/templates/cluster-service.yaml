@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "keydb-cluster.fullname" . }}
+  labels:
+{{ include "labels.standard" . | indent 4 }}
+  annotations:
+  {{- if .Values.serviceAnnotations }}
+{{ toYaml .Values.serviceAnnotations | indent 4 }}
+  {{- end }}
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: server
+    port: {{ .Values.keydb.port }}
+    protocol: TCP
+    targetPort: keydb
+  selector:
+    release: {{ .Release.Name }}
+    app: {{ template "keydb-cluster.name" . }}

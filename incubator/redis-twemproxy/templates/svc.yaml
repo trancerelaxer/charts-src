@@ -1,0 +1,43 @@
+{{- $root := . -}}
+{{- range $i, $e := until ( .Values.redis.replicaCount | int) }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "fullname" $root }}-{{ $e }}
+  labels:
+    app: {{ template "fullname" $root }}-{{ $e }}
+spec:
+  ports:
+  - name: {{ template "fullname" $root }}-{{ $e }}
+    port: 6379
+  type: ClusterIP
+  selector:
+    statefulset.kubernetes.io/pod-name: {{ template "fullname" $root }}-{{ $e }}
+{{- end}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+  {{ toYaml .Values.redis.service.annotations | indent 2 }}
+  name: {{ template "twemproxy" . }}
+  labels:
+    app: {{ template "twemproxy" . }}
+spec:
+  {{- if .Values.twemproxy.enabled }}
+  type: {{ .Values.twemproxy.service.type }}
+  {{ else }}
+  type: LoadBalancer
+  {{ end }}
+  ports:
+    - port: 6379
+      targetPort: 6379
+      protocol: TCP
+      name: {{ template "twemproxy" . }}
+  selector:
+    {{- if .Values.twemproxy.enabled }}
+    app: {{ template "twemproxy" . }}
+    {{ else }}
+    statefulset.kubernetes.io/pod-name: {{ template "fullname" $root }}-0
+    {{ end }}
